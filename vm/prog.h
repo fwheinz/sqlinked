@@ -44,7 +44,8 @@ struct exec {
 };
 
 enum {
-	PF_HALT = 1
+	PF_HALT = 1,
+	PF_CREATESP = 2,
 };
 
 typedef struct exec exec_t;

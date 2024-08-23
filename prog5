@@ -29,7 +29,7 @@ if (u) {
 	exit();
 };
 
-$};
+};
 
 print("Continuing with uid ");
 println(uid);

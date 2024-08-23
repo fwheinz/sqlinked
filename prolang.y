@@ -33,6 +33,8 @@ astnode_t *node (int type);
 
 int compile_ast(astnode_t *root);
 
+static int ignoredblocks = 0;
+
 %}
 
 %define parse.error detailed
@@ -47,7 +49,7 @@ int compile_ast(astnode_t *root);
 
 %type <ast> STMTS STMT NUM APARAMS APARAM ID STR ARR ARRAYVALS ARRAYVAL FPARAMS FPARAM ELSE REAL
 
-%token stmts funcall func aparams arrayvals fparams defun _if _else _while _return arr dblock
+%token stmts funcall func aparams arrayvals fparams defun _if _else _while _return arr block dblock
 %token hello repeat
        <num> num
        <id>  id
@@ -86,7 +88,8 @@ STMT: repeat '(' NUM ')' '{' STMTS '}'  { $$ = node(repeat); $$->child[0] = $3; 
     | _while '(' STMT ')' '{' STMTS '}' { $$ = node(_while); $$->child[0] = $3; $$->child[1] = $6; }
     | _if '(' STMT ')' '{' STMTS '}' ELSE { $$ = node(_if); $$->child[0] = $3; $$->child[1] = $6; $$->child[2] = $8; }
     | _return STMT { $$ = node(_return); $$->child[0] = $2; }
-		| '$' '{' STMTS '$' '}' { $$ = node(dblock); $$->child[0] = $3; }
+		|     '{' STMTS '}' { $$ = node(block);  $$->child[0] = $2; }
+		| '$' '{' STMTS '}' { $$ = node(ignoredblocks ? block : dblock); $$->child[0] = $3; }
 
 ELSE: _else '{' STMTS '}' { $$ = $3;   }
     | %empty             { $$ = NULL; }
@@ -162,6 +165,7 @@ astnode_t *find_func (astnode_t *root, char *name) {
 
 int compile_ast(astnode_t *root) {
   int c, nrparams, jmp, pc, jt;
+  int loopstart, jumpend, dstelse, dstend;
   struct var *v;
 	static astnode_t * curfunc = NULL;
 
@@ -310,10 +314,10 @@ int compile_ast(astnode_t *root) {
     case _if:
 #ifdef METHOD1
       compile_ast(root->child[0]);
-      int dstelse = prog_add_num(p, 0);
+      dstelse = prog_add_num(p, 0);
       prog_add_op(p, JUMPF);
       compile_ast(root->child[1]);
-      int dstend = prog_add_num(p, 0);
+      dstend = prog_add_num(p, 0);
       prog_add_op(p, JUMP);
       prog_set_num(p, dstelse, prog_next_pc(p));
       compile_ast(root->child[2]);
@@ -332,9 +336,9 @@ int compile_ast(astnode_t *root) {
 
     case _while:
 #ifdef METHOD1
-      int loopstart = prog_next_pc(p);
+      loopstart = prog_next_pc(p);
       compile_ast(root->child[0]);
-      int jumpend = prog_add_num(p, 0);
+      jumpend = prog_add_num(p, 0);
       prog_add_op(p, JUMPF);
       compile_ast(root->child[1]);
       prog_add_num(p, loopstart);
@@ -426,6 +430,11 @@ int compile_ast(astnode_t *root) {
         c = 0;
       return c;
       break;
+
+		case block:
+			compile_ast(root->child[0]);
+			prog_add_num(p, 0);
+			break;
 
 		case dblock:
 			dblock_parse(root->child[0]);
@@ -842,6 +851,8 @@ void usage (void) {
   fprintf(stderr, "prolang [-v] [-d] <file>\n"
       "        -v  Increase verbosity\n"
       "        -d  Dump file (no execution)\n"
+      "        -c  (Re-)create stored procedures\n"
+      "        -i  Ignore database blocks\n"
       "    <file>  Bytecode filename\n"
       "\n"
       );
@@ -850,15 +861,21 @@ void usage (void) {
 }
 
 int main (int argc, char **argv) {
-  int verbose = 0, dump = 0, opt;
+  int verbose = 0, dump = 0, opt, createsp = 0;
 
-  while ((opt = getopt(argc, argv, "vd")) != -1) {
+  while ((opt = getopt(argc, argv, "vdci")) != -1) {
     switch (opt) {
       case 'v':
         verbose++;
         break;
       case 'd':
         dump++;
+        break;
+      case 'c':
+        createsp++;
+        break;
+      case 'i':
+        ignoredblocks++;
         break;
       default:
         usage();
@@ -878,6 +895,7 @@ int main (int argc, char **argv) {
   }
 
   int st = yyparse();
+  if (verbose >= 1)
   prog_dump(p);
   if (st) {
     printf("Parsing failed!\n");
@@ -888,6 +906,8 @@ int main (int argc, char **argv) {
   snprintf(bytecodefile, sizeof(bytecodefile), "%s.vm3", argv[optind]);
   prog_write(p, bytecodefile);
   exec_t *e = exec_new(p);
+  if (createsp)
+    e->flags |= PF_CREATESP;
   exec_set_debuglvl(e, verbose);
   exec_run(e);
 
