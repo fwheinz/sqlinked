@@ -40,6 +40,11 @@ struct exec {
   int debuglvl;
 
   int pc;
+	int flags;
+};
+
+enum {
+	PF_HALT = 1
 };
 
 typedef struct exec exec_t;
@@ -54,6 +59,7 @@ typedef struct exec exec_t;
 #define PUSH(x) vstack_push(exec->vstack, (x))
 #define NATIVE(name) val_t *native_##name (exec_t *exec, val_t *args)
 #define ARG(x) arr_get(args->u.arr, (x)+2)
+#define NRARGS (arr_len(args->u.arr)-2)
 
 prog_t *prog_new (void);
 void    prog_dump (prog_t *p);
@@ -86,12 +92,18 @@ struct var {
   int global;
   int nr;
   int type;
+	int dt, sdt;
+	int flags;
+};
+
+enum varflags {
+	F_CURSOROPEN = 0x01
 };
 
 struct varalloc {
-  struct var *globals;
+  struct var **globals;
   int nrglobals;
-  struct var *locals;
+  struct var **locals;
   int nrlocals;
 };
 

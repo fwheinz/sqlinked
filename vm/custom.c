@@ -1,3 +1,7 @@
+#define _GNU_SOURCE
+#include <string.h>
+#include <stdlib.h>
+
 #include "prog.h"
 
 // Add individual opcodes or native functions here
@@ -14,3 +18,282 @@ OPCODE(mymul) {
   val_t *v2 = POP;
   PUSH(val_mul(v1, v2));
 }
+
+// PostgreSQL
+
+#include <libpq-fe.h>
+#include <catalog/pg_type_d.h>
+
+static PGconn *conn;
+static PGresult *result;
+static ExecStatusType es;
+static int currow, nrrows;
+
+void dbnoticeprocessor (void *arg, const char *_msg) {
+	exec_t *exec = arg;
+	if (strncmp(_msg, "NOTICE:  ", 9) != 0) {
+		printf("Malformed msg (1): %s\n", _msg);
+		return;
+	}
+	char *msg = alloca(strlen(_msg)+1);
+	strcpy(msg, _msg+9);
+		
+	char *ptr = strchr(msg, '/');
+	if (!ptr) {
+		printf("Malformed msg (2): %s\n", _msg);
+		return;
+	}
+	*ptr = '\0';
+	ptr++;
+
+	if (strcmp(msg, "println") == 0) {
+		printf("db> %s", ptr);
+	} else if (strcmp(msg, "exit") == 0) {
+		exec->flags = PF_HALT;
+	} else {
+		printf("Unknown command: %s (%s)\n", msg, _msg);
+	}
+}
+
+NATIVE(dbconnect) {
+	val_t *v1 = ARG(0);
+	int st = 0;
+	if (v1->type == T_STR) {
+		if (conn != NULL) {
+			PQfinish(conn);
+		}
+		conn = PQconnectdb(v1->u.str->buf);
+		if (PQstatus(conn) != CONNECTION_OK) {
+        printf("Error while connecting to the database server: %s\n", PQerrorMessage(conn));
+        PQfinish(conn);
+    } else {
+			PQsetNoticeProcessor(conn, dbnoticeprocessor, exec);
+			st = 1;
+		}
+	}
+
+  return v_num_new_int(st);
+}
+
+NATIVE(dbquery) {
+	val_t *v1 = ARG(0);
+	int st = 0;
+
+	int nparams = NRARGS-1;
+	const char *params[nparams];
+	for (int i = 0; i < nparams; i++) {
+		val_t *v = ARG(i+1);
+		if (v->type == T_UNDEF) {
+			params[i] = NULL;
+		} else {
+			val_t *param = val_to_string(v);
+			params[i] = strdupa(param->u.str->buf);
+		}
+	}
+
+		if (conn && v1->type == T_STR) {
+		if (result)
+			PQclear(result);
+		currow = nrrows = 0;
+		result = PQexecParams(conn, v1->u.str->buf, nparams, NULL, params, NULL, NULL, 0);
+		if (!result) {
+        printf("Error while sending query to the database server: %s\n", PQerrorMessage(conn));
+		} else {
+			es = PQresultStatus(result);
+			switch (es) {
+				case PGRES_BAD_RESPONSE:
+					printf("Bad response!\n");
+					break;
+				case PGRES_FATAL_ERROR:
+					printf("Error while executing query: %s\n", PQerrorMessage(conn));
+					break;
+				default:
+					nrrows = PQntuples(result);
+					st = 1;
+					break;
+			}
+		}
+	}
+
+  return v_num_new_int(st);
+}
+
+NATIVE(dbexec) {
+	return native_dbquery(exec, args);
+}
+
+NATIVE(dbnext) {
+	if (conn && currow < nrrows) {
+		int fields = PQnfields(result);
+		val_t *res = v_map_create();
+		for (int i = 0; i < fields; i++) {
+			char *_f = PQfname(result, i);
+			char *_v = PQgetvalue(result, currow, i);
+			val_t *f = v_str_new_cstr(_f);
+			val_t *v = v_str_new_cstr(_v);
+			map_set(res->u.map, f, v);
+		}
+		currow++;
+
+		return res;
+	} else {
+		return v_num_new_int(0);
+	}
+}
+
+NATIVE(dbnextarray) {
+	if (conn && currow < nrrows) {
+		int fields = PQnfields(result);
+		val_t *res = v_arr_create();
+		for (int i = 0; i < fields; i++) {
+			char *s = PQgetvalue(result, currow, i);
+			val_t *v = v_str_new_cstr(s);
+			arr_push(res->u.arr, v);
+		}
+		currow++;
+
+		return res;
+	} else {
+		return v_num_new_int(0);
+	}
+}
+
+/* Stack:
+TOP: Stored Procedure Creation String
+     DBLOCKID
+		 NRVARS
+		 VAR_1
+		 VAR_2
+		 VAR_...
+		 VAR_n
+*/
+OPCODE(dblock) {
+	val_t *fbody = POP;
+	val_t *dblockid = POP;
+	val_t *_nrvars = POP;	
+	int nrvars = _nrvars->u.num;
+
+	val_t *vars[nrvars], *varnames[nrvars];
+	for (int i = 0; i < nrvars; i++) {
+		varnames[i] = POP;
+		vars[i] = POP;
+	}
+
+	char func[10000];
+
+	char sig[10000] = "(";
+	for (int i = 0; i < nrvars; i++) {
+		char *type;
+		switch (vars[i]->type) {
+			case T_NUM:
+				type = "int";
+				break;
+			case T_REAL:
+				type = "real";
+				break;
+			default:
+				type = "text";
+				break;
+		}
+		snprintf(sig+strlen(sig), sizeof(sig)-strlen(sig), "INOUT %s %s%s", varnames[i]->u.str->buf, type, i < nrvars-1 ? ", " : ")");
+	}
+	PGresult *r;
+
+	r = PQexec(conn, "BEGIN");
+	PQclear(r);
+
+	snprintf(func, sizeof(func),
+			"CREATE OR REPLACE FUNCTION dblock_%d %s LANGUAGE plpgsql AS $$\n"
+			"%s\n"
+			"$$\n"
+			, dblockid->u.num, sig, fbody->u.str->buf);
+
+	printf("DEBUG: %s\n", func);
+	r = PQexec(conn, func);
+	es = PQresultStatus(r);
+	switch (es) {
+		case PGRES_BAD_RESPONSE:
+			printf("Bad response!\n");
+			break;
+		case PGRES_FATAL_ERROR:
+			printf("Error while executing query: %s\n", PQerrorMessage(conn));
+			exit(1);
+			break;
+		default:
+			break;
+	}
+	PQclear(r);
+
+	char funcall[1000];
+	snprintf(funcall, sizeof(funcall), "SELECT * FROM dblock_%d(%s",dblockid->u.num, nrvars > 0 ? "$1":"");
+	for (int i = 1; i < nrvars; i++) {
+		char buf[20];
+		snprintf(buf, sizeof(buf), ",$%d", i+1);
+		strncat(funcall, buf, sizeof(funcall)-1);
+	}
+  strncat(funcall, ")", sizeof(funcall));
+
+	const char * pqvals[nrvars];
+	for (int i = 0; i < nrvars; i++) {
+		val_t *v = vars[i];
+		switch (v->type) {
+			case T_NUM:
+				char *buf = alloca(100);
+				snprintf(buf, 100, "%d", v->u.num);
+				pqvals[i] = buf;
+				break;
+			case T_REAL:
+				buf = alloca(100);
+				snprintf(buf, 100, "%f", v->u.real);
+				pqvals[i] = buf;
+				break;
+			case T_STR:
+				pqvals[i] = v->u.str->buf;
+				break;
+			default:
+				printf("Unsupported data type %d\n", v->type);
+				abort();
+				pqvals[i] = "0";
+				break;
+		}
+	}
+
+	r = PQexecParams(conn, funcall, nrvars, NULL, pqvals, NULL, NULL, 0);
+	es = PQresultStatus(r);
+	switch (es) {
+		case PGRES_BAD_RESPONSE:
+			printf("Bad response!\n");
+			break;
+		case PGRES_FATAL_ERROR:
+			printf("Error while executing query: %s\n", PQerrorMessage(conn));
+			exit(1);
+			break;
+		default:
+			break;
+	}
+	int n = PQnfields(r);
+
+	for (int i = n-1; i >= 0; i--) {
+		char *s = PQgetvalue(r, 0, i);
+		switch (PQftype(r, i)) {
+			case INT2OID:
+			case INT4OID:
+			case INT8OID:
+				PUSH(v_num_new_int(atoi(s)));
+				break;
+			default:
+				PUSH(v_str_new_cstr(s));
+				break;
+		}
+	}
+	PQclear(r);
+
+	// Cleanup
+	snprintf(func, sizeof(func), "DROP FUNCTION IF EXISTS dblock_%d %s", dblockid->u.num, sig);
+	r = PQexec(conn, func);
+	PQclear(r);
+	r = PQexec(conn, "COMMIT");
+	PQclear(r);
+}
+
+

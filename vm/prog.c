@@ -142,7 +142,7 @@ void prog_register_function (prog_t *prog, char *name, int pc) {
 
 exec_t *exec_new (prog_t *prog) {
 
-  exec_t *exec = malloc (sizeof *exec);
+  exec_t *exec = calloc (1, sizeof *exec);
   exec->prog = prog;
 
   exec->vstack = vstack_new();
@@ -510,6 +510,7 @@ OPCODE(looprestart) {
 }
 
 OPCODE(halt) {
+	exec->flags |= PF_HALT;
 }
 
 OPCODE(call) {
@@ -604,6 +605,7 @@ OPCODE(indexas) {
   val_t *v = POP;
 
   val_index_assign(a, i, v);
+	PUSH(v);
 }
 
 OPCODE(getint) {
@@ -628,6 +630,12 @@ OPCODE(jumprel) {
 OPCODE(noop) {
   // Nothing to see here...
   // really...
+}
+
+NATIVE(exit) {
+	exec->flags |= PF_HALT;
+
+	return &val_undef;
 }
 
 NATIVE(getint) {
@@ -752,7 +760,7 @@ int exec_step (exec_t *exec) {
         vmerror(E_WARN, exec, "Warning: Unknown op: %d\n", OP(op));
         break;
     }
-    if (OP(op) == HALT) {
+    if (exec->flags & PF_HALT) {
       vmerror(E_INFO, exec, "Program ended with HALT");
       return 0;
     }

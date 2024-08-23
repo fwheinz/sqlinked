@@ -2,6 +2,9 @@
   case MYMUL:
     op_mymul(exec);
     break;
+  case DBLOCK:
+    op_dblock(exec);
+    break;
   case ADD:
     op_add(exec);
     break;

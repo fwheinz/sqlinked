@@ -2,6 +2,7 @@
 char *opcodestr[] = {
   "INVALID",
  "MYMUL",
+ "DBLOCK",
  "ADD",
  "SUB",
  "MUL",

@@ -1,0 +1,22 @@
+defun f () {
+	return 10;
+};
+
+defun g() {
+	return "Hello";
+};
+
+defun h() {
+	return "World";
+};
+
+arr = [1.1,2.2,3.3];
+
+a = arr[1];
+c = 3.1415926535;
+
+println(a);
+println(c);
+
+println(a+c);
+

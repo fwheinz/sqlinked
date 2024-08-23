@@ -173,6 +173,10 @@ val_t *v_map_to_string (val_t *v) {
   return s;
 }
 
+int v_map_to_bool (val_t *v) {
+	return v_map_len(v);
+}
+
 
 void val_register_map (void) {
     val_ops[T_MAP] = (struct val_ops) {
@@ -181,6 +185,7 @@ void val_register_map (void) {
     .len    = v_map_len,
     .dup    = v_map_dup,
     .cmp    = NULL,
+		.to_bool = v_map_to_bool,
     .index  = v_map_index,
     .index_assign = v_map_index_assign,
     .to_string = v_map_to_string,

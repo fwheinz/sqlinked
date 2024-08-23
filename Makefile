@@ -1,12 +1,13 @@
 CC=gcc
-CFLAGS=-ggdb -Wall -Ivm --std=gnu11
+CFLAGS=-ggdb -Wall -Ivm --std=gnu11 
 OBJS=
 TARGETS=prolang
+LIBS=$$(pkg-config --libs libpq)
 
-all: clean $(TARGETS)
+all: $(TARGETS)
 
 %: %.lex.o %.tab.o $(OBJS) vm/libvm3.a
-	$(CC) -o $@ $^
+	$(CC) -o $@ $^ $(LIBS)
 
 %.tab.o: %.tab.c %.tab.h
 	$(CC) -c $(CFLAGS) $< -o $@

@@ -23,6 +23,15 @@ str_t *str_add_buf (str_t *str, char *buf, int len) {
   return str;
 }
 
+str_t *str_add_str (str_t *str, str_t *str2) {
+  str->buf = realloc(str->buf, str->len + str2->len + 1);
+  memcpy(str->buf + str->len, str2->buf, str2->len);
+  str->len += str2->len;
+  str->buf[str->len] = '\0';
+
+  return str;
+}
+
 str_t *str_add_cstr (str_t *str, char *s) {
   return str_add_buf(str, s, strlen(s));
 }
@@ -37,8 +46,10 @@ str_t *str_new_cstr (char *cstr) {
 }
 
 void str_free (str_t *str) {
-  free(str->buf);
-  free(str);
+	if (str) {
+		free(str->buf);
+		free(str);
+	}
 }
 
 int str_len (str_t *str) {
