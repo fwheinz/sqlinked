@@ -149,6 +149,12 @@
   case JUMPREL:
     op_jumprel(exec);
     break;
+  case TSTART:
+    op_tstart(exec);
+    break;
+  case TEND:
+    op_tend(exec);
+    break;
   case NOOP:
     op_noop(exec);
     break;

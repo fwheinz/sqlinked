@@ -51,6 +51,8 @@ char *opcodestr[] = {
  "INDEXAS",
  "GETINT",
  "JUMPREL",
+ "TSTART",
+ "TEND",
  "NOOP",
   "MAX_OP"
 };

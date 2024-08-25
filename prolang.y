@@ -432,12 +432,16 @@ int compile_ast(astnode_t *root) {
       break;
 
 		case block:
+			prog_add_op(p, TSTART);
 			compile_ast(root->child[0]);
+			prog_add_op(p, TEND);
 			prog_add_num(p, 0);
 			break;
 
 		case dblock:
+			prog_add_op(p, TSTART);
 			dblock_parse(root->child[0]);
+			prog_add_op(p, TEND);
 			prog_add_num(p, 0);
 			break;
 

@@ -49,6 +49,8 @@ void op_index1(exec_t *);
 void op_indexas(exec_t *);
 void op_getint(exec_t *);
 void op_jumprel(exec_t *);
+void op_tstart(exec_t *);
+void op_tend(exec_t *);
 void op_noop(exec_t *);
 enum opcodes {
   INVALID,
@@ -102,6 +104,8 @@ enum opcodes {
   INDEXAS,
   GETINT,
   JUMPREL,
+  TSTART,
+  TEND,
   NOOP,
   MAX_OP
 };
