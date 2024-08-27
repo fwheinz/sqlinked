@@ -11,6 +11,7 @@ typedef struct val val_t;
 #include "arr.h"
 #include "map.h"
 #include "real.h"
+#include "ref.h"
 
 #define GC_THRESHOLD 20
 
@@ -21,6 +22,7 @@ enum valtype {
   T_REAL,
   T_ARR,
   T_MAP,
+  T_REF,
   T_MAX
 };
 
@@ -29,6 +31,7 @@ typedef double real_t;
 typedef struct str str_t;
 typedef struct arr arr_t;
 typedef struct map map_t;
+typedef void ref_t;
 
 struct val {
   int type;
@@ -39,6 +42,7 @@ struct val {
     str_t *str;
     arr_t *arr;
     map_t *map;
+    ref_t *ref;
   } u;
   struct val *next;
 };

@@ -25,9 +25,11 @@ OPCODE(mymul) {
 #include <catalog/pg_type_d.h>
 
 static PGconn *conn;
-static PGresult *result;
-static ExecStatusType es;
-static int currow, nrrows;
+
+struct dbresult {
+    PGresult *result;
+    int nrrows, currow;
+};
 
 void dbnoticeprocessor (void *arg, const char *_msg) {
 	exec_t *exec = arg;
@@ -77,46 +79,45 @@ NATIVE(dbconnect) {
 }
 
 NATIVE(dbquery) {
-	val_t *v1 = ARG(0);
-	int st = 0;
+    val_t *v1 = ARG(0);
 
-	int nparams = NRARGS-1;
-	const char *params[nparams];
-	for (int i = 0; i < nparams; i++) {
-		val_t *v = ARG(i+1);
-		if (v->type == T_UNDEF) {
-			params[i] = NULL;
-		} else {
-			val_t *param = val_to_string(v);
-			params[i] = strdupa(param->u.str->buf);
-		}
-	}
+    int nparams = NRARGS-1;
+    const char *params[nparams];
+    for (int i = 0; i < nparams; i++) {
+        val_t *v = ARG(i+1);
+        if (v->type == T_UNDEF) {
+            params[i] = NULL;
+        } else {
+            val_t *param = val_to_string(v);
+            params[i] = strdupa(param->u.str->buf);
+        }
+    }
 
-		if (conn && v1->type == T_STR) {
-		if (result)
-			PQclear(result);
-		currow = nrrows = 0;
-		result = PQexecParams(conn, v1->u.str->buf, nparams, NULL, params, NULL, NULL, 0);
-		if (!result) {
-      vmerror(E_WARN, exec, "Error while sending query to the database server: %s", PQerrorMessage(conn));
-		} else {
-			es = PQresultStatus(result);
-			switch (es) {
-				case PGRES_BAD_RESPONSE:
-					vmerror(E_WARN, exec, "Bad response!");
-					break;
-				case PGRES_FATAL_ERROR:
-					vmerror(E_WARN, exec, "Error while executing query: %s", PQerrorMessage(conn));
-					break;
-				default:
-					nrrows = PQntuples(result);
-					st = 1;
-					break;
-			}
-		}
-	}
+    if (conn && v1->type == T_STR) {
+        PGresult *result = PQexecParams(conn, v1->u.str->buf, nparams, NULL, params, NULL, NULL, 0);
+        if (!result) {
+            vmerror(E_WARN, exec, "Error while sending query to the database server: %s", PQerrorMessage(conn));
+        } else {
+            struct dbresult *dbr = malloc(sizeof(*dbr));
+            dbr->result = result;
+            ExecStatusType es = PQresultStatus(result);
+            switch (es) {
+                case PGRES_BAD_RESPONSE:
+                    vmerror(E_WARN, exec, "Bad response!");
+                    break;
+                case PGRES_FATAL_ERROR:
+                    vmerror(E_WARN, exec, "Error while executing query: %s", PQerrorMessage(conn));
+                    break;
+                default:
+                    dbr->nrrows = PQntuples(result);
+                    dbr->currow = 0;
+                    break;
+            }
+            return v_ref_new_ptr(dbr);
+        }
+    }
 
-  return v_num_new_int(st);
+    return &val_undef;
 }
 
 NATIVE(dbexec) {
@@ -124,17 +125,19 @@ NATIVE(dbexec) {
 }
 
 NATIVE(dbnext) {
-	if (conn && currow < nrrows) {
-		int fields = PQnfields(result);
+    val_t *r = ARG(0);
+    struct dbresult *dbr = r->u.ref;
+	if (conn && dbr->currow < dbr->nrrows) {
+		int fields = PQnfields(dbr->result);
 		val_t *res = v_map_create();
 		for (int i = 0; i < fields; i++) {
-			char *_f = PQfname(result, i);
-			char *_v = PQgetvalue(result, currow, i);
+			char *_f = PQfname(dbr->result, i);
+			char *_v = PQgetvalue(dbr->result, dbr->currow, i);
 			val_t *f = v_str_new_cstr(_f);
 			val_t *v = v_str_new_cstr(_v);
 			map_set(res->u.map, f, v);
 		}
-		currow++;
+		dbr->currow++;
 
 		return res;
 	} else {
@@ -143,15 +146,17 @@ NATIVE(dbnext) {
 }
 
 NATIVE(dbnextarray) {
-	if (conn && currow < nrrows) {
-		int fields = PQnfields(result);
+    val_t *r = ARG(0);
+    struct dbresult *dbr = r->u.ref;
+	if (conn && dbr->currow < dbr->nrrows) {
+		int fields = PQnfields(dbr->result);
 		val_t *res = v_arr_create();
 		for (int i = 0; i < fields; i++) {
-			char *s = PQgetvalue(result, currow, i);
+			char *s = PQgetvalue(dbr->result, dbr->currow, i);
 			val_t *v = v_str_new_cstr(s);
 			arr_push(res->u.arr, v);
 		}
-		currow++;
+		dbr->currow++;
 
 		return res;
 	} else {
@@ -196,7 +201,11 @@ OPCODE(dblock) {
 				type = "text";
 				break;
 		}
-		snprintf(sig+strlen(sig), sizeof(sig)-strlen(sig), "INOUT %s %s%s", varnames[i]->u.str->buf, type, i < nrvars-1 ? ", " : ")");
+		snprintf(sig+strlen(sig), sizeof(sig)-strlen(sig), "INOUT %s %s%s", varnames[i]->u.str->buf, type, i < nrvars-1 ? ", " : "");
+	}
+	snprintf(sig+strlen(sig), sizeof(sig)-strlen(sig), ")");
+	if (nrvars == 0) {
+		snprintf(sig+strlen(sig), sizeof(sig)-strlen(sig), " RETURNS VOID");
 	}
 	PGresult *r;
 
@@ -204,6 +213,9 @@ OPCODE(dblock) {
 //	PQclear(r);
 
   if (exec->flags & PF_CREATESP) {
+	snprintf(func, sizeof(func), "DROP FUNCTION IF EXISTS dblock_%d %s", dblockid->u.num, sig);
+	r = PQexec(conn, func);
+	PQclear(r);
     snprintf(func, sizeof(func),
         "CREATE OR REPLACE FUNCTION dblock_%d %s LANGUAGE plpgsql AS $$\n"
         "%s\n"
@@ -212,7 +224,7 @@ OPCODE(dblock) {
 
     vmerror(E_INFO, exec, "CREATESP: %s\n", func);
     r = PQexec(conn, func);
-    es = PQresultStatus(r);
+    ExecStatusType es = PQresultStatus(r);
     switch (es) {
       case PGRES_BAD_RESPONSE:
         vmerror(E_ERR, exec, "Bad response!\n");
@@ -264,7 +276,7 @@ OPCODE(dblock) {
 	}
 
 	r = PQexecParams(conn, funcall, nrvars, NULL, pqvals, NULL, NULL, 0);
-	es = PQresultStatus(r);
+	ExecStatusType es = PQresultStatus(r);
 	switch (es) {
 		case PGRES_BAD_RESPONSE:
 			vmerror(E_ERR, exec, "Bad response!");
