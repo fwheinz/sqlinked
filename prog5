@@ -1,4 +1,4 @@
-dbconnect("user=postgres");
+dbconnect("user=sqlinked password=s3cr3t host=mdc1");
 
 print("Username: ");
 login = getstring();
@@ -12,21 +12,21 @@ ${
 users = dbquery("SELECT * FROM accounts WHERE login = $1", login);
 u = dbnext(users);
 if (u) {
-	println("User exists!");
-	if (u["pass"] == pass) {
-		println("Login successful!");
-		dbquery("UPDATE accounts SET lastlogin=now() WHERE uid = $1", u["uid"]);
-		dbquery("INSERT INTO logs (action, comment) VALUES($1, $2)", "login", u["name"] + " logged in!");
-		uid = u["uid"];
-	} else {
-		println("Login failed!");
-		dbquery("INSERT INTO logs (action, comment) VALUES($1, $2)", "passwordfailed", u["name"] + " entered a wrong password!");
-		exit();
-	};
+    println("User exists!");
+    if (u["pass"] == pass) {
+            println("Login successful!");
+            dbquery("UPDATE accounts SET lastlogin=now() WHERE uid = $1", u["uid"]);
+            dbquery("INSERT INTO logs (action, comment) VALUES($1, $2)", "login", u["name"] + " logged in!");
+            uid = u["uid"];
+    } else {
+            println("Login failed!");
+            dbquery("INSERT INTO logs (action, comment) VALUES($1, $2)", "passwordfailed", u["name"] + " entered a wrong password!");
+            exit();
+    };
 } else {
-	println("User does not exist!");
-  dbquery("INSERT INTO logs (action, comment) VALUES($1, $2)", "loginfailed", login + " does not exist!");
-	exit();
+    println("User does not exist!");
+    dbquery("INSERT INTO logs (action, comment) VALUES($1, $2)", "loginfailed", login + " does not exist!");
+    exit();
 };
 
 };

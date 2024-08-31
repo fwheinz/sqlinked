@@ -25,6 +25,7 @@ enum errors {
 extern char *lvlstr[];
 
 struct prog {
+  char *name;
   val_t *ops;
   val_t *constants;
   val_t *functions;

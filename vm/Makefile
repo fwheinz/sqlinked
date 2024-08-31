@@ -1,7 +1,7 @@
 CC=gcc
-CFLAGS=-O2 -ggdb -Wall -I. -Werror --std=gnu11 $$(pkg-config --cflags libpq) -I/usr/include/postgresql/13/server -I/usr/include/postgresql/15/server
+CFLAGS=-O2 -ggdb -Wall -I. -Werror --std=gnu11 $$(pkg-config --cflags libpq) -I/usr/include/postgresql/13/server -I/usr/include/postgresql/14/server -I/usr/include/postgresql/15/server
 
-OBJ=prog.o custom.o stack.o vstack.o val/str.o val/num.o val/arr.o val/real.o val/val.o val/map.o vars.o
+OBJ=prog.o custom.o stack.o vstack.o val/str.o val/num.o val/arr.o val/real.o val/val.o val/map.o val/ref.o vars.o
 LIBS=$$(pkg-config --libs libpq)
 
 all: clean vm main

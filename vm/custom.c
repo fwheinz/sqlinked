@@ -175,7 +175,8 @@ TOP: Stored Procedure Creation String
 */
 OPCODE(dblock) {
 	val_t *fbody = POP;
-	val_t *dblockid = POP;
+	val_t *_dblockname = POP;
+    char *dblockname = _dblockname->u.str->buf;
 	val_t *_nrvars = POP;	
 	int nrvars = _nrvars->u.num;
 
@@ -213,14 +214,14 @@ OPCODE(dblock) {
 //	PQclear(r);
 
   if (exec->flags & PF_CREATESP) {
-	snprintf(func, sizeof(func), "DROP FUNCTION IF EXISTS dblock_%d %s", dblockid->u.num, sig);
+	snprintf(func, sizeof(func), "DROP FUNCTION IF EXISTS %s %s", dblockname, sig);
 	r = PQexec(conn, func);
 	PQclear(r);
     snprintf(func, sizeof(func),
-        "CREATE OR REPLACE FUNCTION dblock_%d %s LANGUAGE plpgsql AS $$\n"
+        "CREATE OR REPLACE FUNCTION %s %s LANGUAGE plpgsql AS $$\n"
         "%s\n"
         "$$\n"
-        , dblockid->u.num, sig, fbody->u.str->buf);
+        , dblockname, sig, fbody->u.str->buf);
 
     vmerror(E_INFO, exec, "CREATESP: %s\n", func);
     r = PQexec(conn, func);
@@ -241,7 +242,7 @@ OPCODE(dblock) {
   }
 
   char funcall[1000];
-  snprintf(funcall, sizeof(funcall), "SELECT * FROM dblock_%d(%s",dblockid->u.num, nrvars > 0 ? "$1":"");
+  snprintf(funcall, sizeof(funcall), "SELECT * FROM %s(%s",dblockname, nrvars > 0 ? "$1":"");
   for (int i = 1; i < nrvars; i++) {
     char buf[20];
     snprintf(buf, sizeof(buf), ",$%d", i+1);

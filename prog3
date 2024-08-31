@@ -1,7 +1,7 @@
 x = [ 2, 3, 5, 7 ];
 println(x[2]);
 println(x);
-dbconnect("user=postgres");
+dbconnect("user=sqlinked password=s3cr3t host=mdc1");
 dbquery("SELECT * FROM books WHERE author=$1 OR id=$2", "Jane Austen", 2);
 while ( arr = dbnext() ) {
 	println(arr);
@@ -12,7 +12,7 @@ b = 10.0;
 ${
 	a = a + 1;
 	b = b - 7.5;
-$};
+};
 
 println(a);
 println(b);
@@ -40,6 +40,6 @@ ${
 	sx = sx + sy;
 	println(c);
 	a = a - c;
-$};
+};
 println(sx);
 println(a);
