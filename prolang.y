@@ -663,7 +663,7 @@ str_t *dblock_create_plpgsql(astnode_t *root) {
         case eq:
             s = dblock_create_plpgsql(root->child[0]);
             s2 = dblock_create_plpgsql(root->child[1]);
-            root->dt = root->child[0]->dt;
+            root->dt = T_NUM;
             root->sdt = root->child[0]->sdt;
             str_add_cstr(s, " = ");
             str_add_str(s, s2); str_free(s2);
@@ -819,7 +819,7 @@ void dblock_parse(astnode_t *root, astnode_t *func) {
                 type = "record := row(NULL)";
                 break;
             default:
-                printf("Unsupported type: %d\n", intvars[i]->dt);
+                printf("Unsupported type for variable %s: %d\n", intvars[i]->id, intvars[i]->dt);
                 abort();
         }
 
