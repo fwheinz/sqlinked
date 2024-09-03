@@ -62,6 +62,7 @@ static int ignoredblocks = 0;
 %left '<'
 %left '+' '-'
 %left '*'
+%left UNARYMINUS
 
 %start START
 
@@ -76,6 +77,7 @@ STMT: repeat '(' NUM ')' '{' STMTS '}'  { $$ = node(repeat); $$->child[0] = $3; 
     | STMT '+' STMT { $$ = node('+'); $$->child[0] = $1; $$->child[1] = $3; }
     | STMT '*' STMT { $$ = node('*'); $$->child[0] = $1; $$->child[1] = $3; }
     | STMT '-' STMT { $$ = node('-'); $$->child[0] = $1; $$->child[1] = $3; }
+    |      '-' STMT { $$ = node('-'); $$->child[0] = 0 ; $$->child[1] = $2; } %prec UNARYMINUS
     | STMT '<' STMT { $$ = node('<'); $$->child[0] = $1; $$->child[1] = $3; }
     | STMT eq  STMT { $$ = node(eq); $$->child[0] = $1; $$->child[1] = $3; }
     | STMT neq STMT { $$ = node(neq); $$->child[0] = $1; $$->child[1] = $3; }
@@ -263,10 +265,16 @@ int compile_ast(astnode_t *root) {
 
     case '-':
       compile_ast(root->child[1]);
-      compile_ast(root->child[0]);
-            typecheck(root, 0, 1, false);
-            root->dt = root->child[0]->dt;
-      prog_add_op(p, SUB);
+      if (root->child[0]) {
+          compile_ast(root->child[0]);
+          typecheck(root, 0, 1, false);
+          root->dt = root->child[0]->dt;
+          prog_add_op(p, SUB);
+      } else {
+          root->dt = root->child[1]->dt;
+          prog_add_op(p, NEGATE);
+      }
+
       break;
 
     case str:
