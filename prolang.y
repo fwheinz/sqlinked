@@ -19,6 +19,7 @@ void yyerror (const char *msg);
 
 typedef struct astnode astnode_t;
 struct astnode {
+  int id;
   int type;
   union {
     int num;
@@ -31,6 +32,7 @@ struct astnode {
 } *globalroot;
 astnode_t *node (int type);
 
+void print_ast(astnode_t *root, int depth);
 int compile_ast(astnode_t *root);
 
 static int ignoredblocks = 0;
@@ -67,7 +69,7 @@ static int ignoredblocks = 0;
 %start START
 
 %%
-START: STMTS { globalroot = $1; compile_ast($1); }
+START: STMTS { globalroot = $1; print_ast($1, 0); compile_ast($1); }
 
 STMTS: STMTS STMT ';' { $$ = node(stmts); $$->child[0] = $1; $$->child[1] = $2; }
      | %empty { $$ = NULL; }
@@ -150,6 +152,69 @@ void _typecheck (astnode_t *o1, astnode_t *o2, int assign) {
 
 void typecheck(astnode_t *root, int o1, int o2, int assign) {
     _typecheck (root->child[o1], root->child[o2], assign);
+}
+
+char *node2str(astnode_t *t) {
+    char *buf = malloc(100);
+    if (t->type >= 0x20 && t->type <= 0x7f) {
+        buf[0] = t->type;
+        buf[1] = 0;
+    } else {
+        switch (t->type) {
+            case stmts:
+                return "Statement";
+            case aparams:
+                return "Parameter";
+            case fparams:
+                return "Formal Parameter";
+            case funcall:
+                return "Call";
+            case _if:
+                return "If";
+            case eq:
+                return "==";
+            case dblock:
+                return "${ dblock }";
+            case num:
+                snprintf(buf, 100, "%d", t->v.num);
+                break;
+            case real:
+                snprintf(buf, 100, "%f", t->v.real);
+                break;
+            case id:
+                snprintf(buf, 100, "%s", t->v.id);
+                break;
+            case str:
+                snprintf(buf, 100, "%s", t->v.str);
+                break;
+            default:
+                snprintf(buf, 100, "%d", t->type);
+                break;
+        }
+    }
+
+    return buf;
+}
+
+void print_ast(astnode_t *root, int depth) {
+  static FILE *dot;
+  if (depth == 0) {
+    dot = fopen("ast.gv", "w");
+    fprintf(dot, "digraph ast {\n");
+  }
+  // Create graph node
+  fprintf(dot, "  n%d [label=\"%s\"]\n", root->id, node2str(root));
+  for (int i = 0; i < MAXCHILDREN; i++) {
+    if (root->child[i]) {
+      // Create graph edge
+      fprintf(dot, "  n%d -> n%d\n", root->id, root->child[i]->id);
+      print_ast(root->child[i], depth+1);
+    }
+  }
+  if (depth == 0) {
+    fprintf(dot, "}\n");
+    fclose(dot);
+  }
 }
 
 astnode_t *find_func (astnode_t *root, char *name) {
@@ -534,7 +599,7 @@ str_t *dblock_create_plpgsql(astnode_t *root) {
     switch (root->type) {
     case stmts:
             s = dblock_create_plpgsql(root->child[0]);
-      s2 = dblock_create_plpgsql(root->child[1]);
+            s2 = dblock_create_plpgsql(root->child[1]);
             str_add_cstr(s, "  ");
             str_add_str(s, s2); str_free(s2);
             str_add_cstr(s, ";\n");
@@ -649,9 +714,14 @@ str_t *dblock_create_plpgsql(astnode_t *root) {
         case '-':
             s = dblock_create_plpgsql(root->child[0]);
             s2 = dblock_create_plpgsql(root->child[1]);
-            typecheck(root, 0, 1, false);
-            root->dt = root->child[0]->dt;
-            root->sdt = root->child[0]->sdt;
+            if (root->child[0]) {
+                typecheck(root, 0, 1, false);
+                root->dt = root->child[0]->dt;
+                root->sdt = root->child[0]->sdt;
+            } else {
+                root->dt = root->child[1]->dt;
+                root->sdt = root->child[1]->sdt;
+            }
             str_add_cstr(s, " - ");
             str_add_str(s, s2); str_free(s2);
             return s;
@@ -853,10 +923,13 @@ void dblock_parse(astnode_t *root, astnode_t *func) {
 }
 
 astnode_t *node (int type) {
-  astnode_t *n = calloc(1, sizeof *n);
-  n->type = type;
+    static int id = 1;
+    astnode_t *n = calloc(1, sizeof *n);
+    n->type = type;
+    n->id = id++;
     n->dt = n->sdt = T_UNDEF;
-  return n;
+
+    return n;
 }
 
 void yyerror (const char *msg) {

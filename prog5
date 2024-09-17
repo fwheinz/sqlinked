@@ -21,12 +21,12 @@ if (u) {
     } else {
             println("Login failed!");
             dbquery("INSERT INTO logs (action, comment) VALUES($1, $2)", "passwordfailed", u["name"] + " entered a wrong password!");
-            exit();
+            uid = -1;
     };
 } else {
     println("User does not exist!");
     dbquery("INSERT INTO logs (action, comment) VALUES($1, $2)", "loginfailed", login + " does not exist!");
-    exit();
+    uid = -1;
 };
 
 };
