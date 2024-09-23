@@ -33,6 +33,7 @@ STR    \"[^\"]*\"
 {REAL}   { yylval.real =   atof(yytext); return real; }
 {ID}     { yylval.id  = strdup(yytext); return id;  }
 {STR}    { yylval.str = strdup(yytext+1); yylval.str[strlen(yylval.str)-1] = 0; return str; }
+"//".*
 (\ |\n|\t)
 .        { return yytext[0]; }
 
