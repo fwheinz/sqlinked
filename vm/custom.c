@@ -217,6 +217,7 @@ OPCODE(dblock) {
 	snprintf(func, sizeof(func), "DROP FUNCTION IF EXISTS %s %s", dblockname, sig);
 	r = PQexec(conn, func);
 	PQclear(r);
+    vmerror(E_INFO, exec, "Executing query: %s", func);
     snprintf(func, sizeof(func),
         "CREATE OR REPLACE FUNCTION %s %s LANGUAGE plpgsql AS $$\n"
         "%s\n"
@@ -243,6 +244,7 @@ OPCODE(dblock) {
 
   char funcall[1000];
   snprintf(funcall, sizeof(funcall), "SELECT * FROM %s(%s",dblockname, nrvars > 0 ? "$1":"");
+  vmerror(E_INFO, exec, "Executing query: %s", funcall);
   for (int i = 1; i < nrvars; i++) {
     char buf[20];
     snprintf(buf, sizeof(buf), ",$%d", i+1);

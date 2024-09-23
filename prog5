@@ -32,4 +32,3 @@ if (u) {
 };
 
 print("Continuing with uid ");
-println(uid);

@@ -641,7 +641,7 @@ OPCODE(tend) {
   int val = (tv.tv_sec%1000000)*1000000+tv.tv_usec;
   val_t *v2 = POP;
   int diff = val - v2->u.num;
-  vmerror(E_INFO, exec, "Block time: %.3fms\n", diff/1000.0);
+  vmerror(E_ERR, exec, "Block time: %.3fms\n", diff/1000.0);
   PUSH(v_num_new_int(val));
 }
 

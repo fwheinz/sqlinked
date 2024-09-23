@@ -32,7 +32,7 @@ struct astnode {
 } *globalroot;
 astnode_t *node (int type);
 
-void print_ast(astnode_t *root, int depth);
+void print_ast(astnode_t *root, int depth, char *color);
 int compile_ast(astnode_t *root);
 
 static int ignoredblocks = 0;
@@ -69,7 +69,7 @@ static int ignoredblocks = 0;
 %start START
 
 %%
-START: STMTS { globalroot = $1; print_ast($1, 0); compile_ast($1); }
+START: STMTS { globalroot = $1; print_ast($1, 0, ""); compile_ast($1); }
 
 STMTS: STMTS STMT ';' { $$ = node(stmts); $$->child[0] = $1; $$->child[1] = $2; }
      | %empty { $$ = NULL; }
@@ -171,21 +171,23 @@ char *node2str(astnode_t *t) {
                 return "Call";
             case _if:
                 return "If";
+            case _while:
+                return "While";
             case eq:
                 return "==";
             case dblock:
                 return "${ dblock }";
             case num:
-                snprintf(buf, 100, "%d", t->v.num);
+                snprintf(buf, 100, "num\\n%d", t->v.num);
                 break;
             case real:
-                snprintf(buf, 100, "%f", t->v.real);
+                snprintf(buf, 100, "real\\n%f", t->v.real);
                 break;
             case id:
-                snprintf(buf, 100, "%s", t->v.id);
+                snprintf(buf, 100, "id\\n%s", t->v.id);
                 break;
             case str:
-                snprintf(buf, 100, "%s", t->v.str);
+                snprintf(buf, 100, "str\\n\\\"%s\\\"", t->v.str);
                 break;
             default:
                 snprintf(buf, 100, "%d", t->type);
@@ -196,24 +198,31 @@ char *node2str(astnode_t *t) {
     return buf;
 }
 
-void print_ast(astnode_t *root, int depth) {
+void print_ast(astnode_t *root, int depth, char *fillcolor) {
   static FILE *dot;
   if (depth == 0) {
-    dot = fopen("ast.gv", "w");
+    char fname[100];
+    snprintf(fname, sizeof(fname), "%s.gv", p->name);
+    dot = fopen(fname, "w");
     fprintf(dot, "digraph ast {\n");
   }
+  if (root->type == dblock)
+      fillcolor = "cyan";
   // Create graph node
-  fprintf(dot, "  n%d [label=\"%s\"]\n", root->id, node2str(root));
+  fprintf(dot, "  n%d [label=\"%s\" style=\"filled\" fillcolor=\"%s\"]\n", root->id, node2str(root), fillcolor);
   for (int i = 0; i < MAXCHILDREN; i++) {
     if (root->child[i]) {
       // Create graph edge
       fprintf(dot, "  n%d -> n%d\n", root->id, root->child[i]->id);
-      print_ast(root->child[i], depth+1);
+      print_ast(root->child[i], depth+1, fillcolor);
     }
   }
   if (depth == 0) {
-    fprintf(dot, "}\n");
-    fclose(dot);
+      fprintf(dot, "}\n");
+      fclose(dot);
+      char dotcmd[200];
+      snprintf(dotcmd, sizeof(dotcmd), "dot -Teps -o %s.eps %s.gv &", p->name, p->name);
+      system(dotcmd);
   }
 }
 
@@ -977,12 +986,12 @@ int main (int argc, char **argv) {
   }
 
   p = prog_new();
-  yyin = fopen(argv[optind], "r");
+  p->name = strdup(argv[optind]);
+  yyin = fopen(p->name, "r");
   if (yyin == NULL) {
-    printf("Could not open file %s: %s\n", argv[optind], strerror(errno));
+    printf("Could not open file %s: %s\n", p->name, strerror(errno));
     usage();
   }
-  p->name = strdup(argv[optind]);
 
   int st = yyparse();
   if (dump >= 1) {
@@ -995,7 +1004,7 @@ int main (int argc, char **argv) {
   }
 
   char bytecodefile[100];
-  snprintf(bytecodefile, sizeof(bytecodefile), "%s.vm3", argv[optind]);
+  snprintf(bytecodefile, sizeof(bytecodefile), "%s.vm3", p->name);
   prog_write(p, bytecodefile);
   exec_t *e = exec_new(p);
   exec_set_debuglvl(e, verbose);
