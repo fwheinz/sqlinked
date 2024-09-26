@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-ggdb -Wall -Ivm --std=gnu11 
 OBJS=
-TARGETS=prolang
+TARGETS=sqlinked
 LIBS=$$(pkg-config --libs libpq)
 
 all: $(TARGETS)
@@ -30,4 +30,3 @@ clean:
 
 .PHONY: vm/libvm3.a
 
-.PRECIOUS: prolang.tab.h
