@@ -1,5 +1,5 @@
 %{
-#include "prolang.tab.h"
+#include "sqlinked.tab.h"
 %}
 
 %option noinput nounput noyywrap yylineno
