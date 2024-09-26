@@ -1,13 +1,25 @@
-my = random(100);
-guess = 0;
-while (guess != my) {
-  guess = getint();
-  if (guess < my) {
-    println("Sorry,", guess, "is too small");
-  } else {
-    if (my < guess) {
-      println("Sorry,", guess, "is too large");
+dbconnect("user=sqlinked password=s3cr3t host=mdc1");
+
+dbquery("SELECT * FROM accounts");
+
+nr = 0;
+
+${
+
+users = dbquery("SELECT * FROM accounts");
+while (u = dbnext(users)) {
+    msg = u["login"];
+    if (u["lastlogin"]) {
+         msg = msg + " is an existing useraccount that logged in last at "+u["lastlogin"];
+    } else {
+         msg = msg + " is an existing useraccount that never logged in";
+     nr=nr+1;
     };
-  };
+    dbquery("INSERT INTO logs (action, comment) VALUES($1, $2)", "audit", msg);
+    println(msg);
 };
-println("Congratulations,", my, "was my number!");
+
+};
+
+print("Unused accounts: ");
+println(nr);

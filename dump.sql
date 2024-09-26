@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 15.7 (Ubuntu 15.7-0ubuntu0.23.10.1)
--- Dumped by pg_dump version 15.7 (Ubuntu 15.7-0ubuntu0.23.10.1)
+-- Dumped from database version 14.13 (Ubuntu 14.13-0ubuntu0.22.04.1)
+-- Dumped by pg_dump version 14.13 (Ubuntu 14.13-0ubuntu0.22.04.1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -21,7 +21,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: accounts; Type: TABLE; Schema: public; Owner: postgres
+-- Name: accounts; Type: TABLE; Schema: public; Owner: sqlinked
 --
 
 CREATE TABLE public.accounts (
@@ -33,10 +33,10 @@ CREATE TABLE public.accounts (
 );
 
 
-ALTER TABLE public.accounts OWNER TO postgres;
+ALTER TABLE public.accounts OWNER TO sqlinked;
 
 --
--- Name: accounts_uid_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: accounts_uid_seq; Type: SEQUENCE; Schema: public; Owner: sqlinked
 --
 
 CREATE SEQUENCE public.accounts_uid_seq
@@ -48,17 +48,17 @@ CREATE SEQUENCE public.accounts_uid_seq
     CACHE 1;
 
 
-ALTER TABLE public.accounts_uid_seq OWNER TO postgres;
+ALTER TABLE public.accounts_uid_seq OWNER TO sqlinked;
 
 --
--- Name: accounts_uid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: accounts_uid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: sqlinked
 --
 
 ALTER SEQUENCE public.accounts_uid_seq OWNED BY public.accounts.uid;
 
 
 --
--- Name: logs; Type: TABLE; Schema: public; Owner: postgres
+-- Name: logs; Type: TABLE; Schema: public; Owner: sqlinked
 --
 
 CREATE TABLE public.logs (
@@ -69,10 +69,10 @@ CREATE TABLE public.logs (
 );
 
 
-ALTER TABLE public.logs OWNER TO postgres;
+ALTER TABLE public.logs OWNER TO sqlinked;
 
 --
--- Name: logs_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: logs_id_seq; Type: SEQUENCE; Schema: public; Owner: sqlinked
 --
 
 CREATE SEQUENCE public.logs_id_seq
@@ -84,56 +84,71 @@ CREATE SEQUENCE public.logs_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.logs_id_seq OWNER TO postgres;
+ALTER TABLE public.logs_id_seq OWNER TO sqlinked;
 
 --
--- Name: logs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: logs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: sqlinked
 --
 
 ALTER SEQUENCE public.logs_id_seq OWNED BY public.logs.id;
 
 
 --
--- Name: accounts uid; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: accounts uid; Type: DEFAULT; Schema: public; Owner: sqlinked
 --
 
 ALTER TABLE ONLY public.accounts ALTER COLUMN uid SET DEFAULT nextval('public.accounts_uid_seq'::regclass);
 
 
 --
--- Name: logs id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: logs id; Type: DEFAULT; Schema: public; Owner: sqlinked
 --
 
 ALTER TABLE ONLY public.logs ALTER COLUMN id SET DEFAULT nextval('public.logs_id_seq'::regclass);
 
 
 --
--- Data for Name: accounts; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: accounts; Type: TABLE DATA; Schema: public; Owner: sqlinked
 --
 
 COPY public.accounts (uid, login, pass, name, lastlogin) FROM stdin;
 2	max	1234	Max Mustermann	\N
 3	tim	password	Tim Woods	\N
-1	flo	secret	Florian Heinz	2024-08-22 18:49:42.900124
+4	tom	313131	Thomas Miller	\N
+5	charlie	xoxoxox	Charles Banks	\N
+6	anna	ijreosvsd	Anna Hilbert	\N
+1	flo	secret	Florian Heinz	\N
+7	susan	011235813	Susan Smith	\N
+8	karen	23571113	Karen Brick	\N
+9	wolfgang	hellowurld!	Wolfgang Henderson	\N
+10	paul	00000000	Paul Eriksson	\N
 \.
 
 
 --
--- Name: accounts_uid_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Data for Name: logs; Type: TABLE DATA; Schema: public; Owner: sqlinked
 --
 
-SELECT pg_catalog.setval('public.accounts_uid_seq', 3, true);
-
-
---
--- Name: logs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.logs_id_seq', 20, true);
+COPY public.logs (id, ts, action, comment) FROM stdin;
+\.
 
 
 --
--- Name: accounts accounts_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: accounts_uid_seq; Type: SEQUENCE SET; Schema: public; Owner: sqlinked
+--
+
+SELECT pg_catalog.setval('public.accounts_uid_seq', 10, true);
+
+
+--
+-- Name: logs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: sqlinked
+--
+
+SELECT pg_catalog.setval('public.logs_id_seq', 432, true);
+
+
+--
+-- Name: accounts accounts_pkey; Type: CONSTRAINT; Schema: public; Owner: sqlinked
 --
 
 ALTER TABLE ONLY public.accounts
@@ -141,7 +156,7 @@ ALTER TABLE ONLY public.accounts
 
 
 --
--- Name: logs logs_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: logs logs_pkey; Type: CONSTRAINT; Schema: public; Owner: sqlinked
 --
 
 ALTER TABLE ONLY public.logs

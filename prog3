@@ -1,45 +1,11 @@
-x = [ 2, 3, 5, 7 ];
-println(x[2]);
-println(x);
 dbconnect("user=sqlinked password=s3cr3t host=mdc1");
-dbquery("SELECT * FROM books WHERE author=$1 OR id=$2", "Jane Austen", 2);
-while ( arr = dbnext() ) {
-	println(arr);
-};
-
-a = 5;
-b = 10.0;
+a = 10;
+s = "abc";
 ${
-	a = a + 1;
-	b = b - 7.5;
+     b = 20;
+     a = a + b;
+     t = "def";
+     s = s + t;
 };
-
 println(a);
-println(b);
-
-a = a * 3;
-println(a);
-sx = "foo";
-sy = "!";
-
-${
-	foo = dbquery("SELECT * FROM books WHERE author=$1 OR id=$2", "Jane Austen", 2);
-	bar = dbnext(foo);
-	sx = bar["title"] + " from " + bar["author"];
-	if (bar["id"] == "1") {
-		println("Book has id 1");
-	};
-	c = 3;
-	foo = dbquery("SELECT * FROM books WHERE author=$1 OR id=$2", "Jane Austen", 2);
-	while (bar = dbnext(foo)) {
-		println("XXX"+bar["title"]);
-		c = c + 1;
-	};
-	dbquery("INSERT INTO books VALUES(10, $1, $2)", "foo", "bar");
-	println(sx);
-	sx = sx + sy;
-	println(c);
-	a = a - c;
-};
-println(sx);
-println(a);
+println(s);
