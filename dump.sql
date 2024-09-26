@@ -24,6 +24,13 @@ SET default_table_access_method = heap;
 -- Name: accounts; Type: TABLE; Schema: public; Owner: sqlinked
 --
 
+CREATE USER sqlinked PASSWORD 's3cr3t';
+CREATE DATABASE sqlinked;
+ALTER DATABASE sqlinked OWNER TO sqlinked;
+
+\c sqlinked
+
+
 CREATE TABLE public.accounts (
     uid integer NOT NULL,
     login text,

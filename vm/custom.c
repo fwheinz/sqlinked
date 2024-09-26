@@ -210,9 +210,6 @@ OPCODE(dblock) {
 	}
 	PGresult *r;
 
-//	r = PQexec(conn, "BEGIN");
-//	PQclear(r);
-
   if (exec->flags & PF_CREATESP) {
 	snprintf(func, sizeof(func), "DROP FUNCTION IF EXISTS %s %s", dblockname, sig);
 	r = PQexec(conn, func);
@@ -224,7 +221,7 @@ OPCODE(dblock) {
         "$$\n"
         , dblockname, sig, fbody->u.str->buf);
 
-    vmerror(E_INFO, exec, "CREATESP: %s\n", func);
+    vmerror(E_WARN, exec, "CREATESP: %s\n", func);
     r = PQexec(conn, func);
     ExecStatusType es = PQresultStatus(r);
     switch (es) {

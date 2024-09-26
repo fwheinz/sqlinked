@@ -1,4 +1,4 @@
-dbconnect("user=sqlinked password=s3cr3t host=mdc1");
+dbconnect("user=sqlinked password=s3cr3t host=localhost");
 
 print("Username: ");
 login = getstring();

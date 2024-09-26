@@ -881,7 +881,6 @@ void dblock_parse(astnode_t *root, astnode_t *func) {
     prog_add_num(p, prog_new_constant(p, v_str_new_cstr(blockname)));
     prog_add_op(p, CONSTANT);
 
-    printf("Compiling PL/PGSQL block...\n");
     str_t *fbody = dblock_create_plpgsql(root);
 
     dblock_identify_int_variables (root);
@@ -917,8 +916,6 @@ void dblock_parse(astnode_t *root, astnode_t *func) {
     str_add_cstr(s, "BEGIN\n");
     str_add_str(s, fbody); str_free(fbody);
     str_add_cstr(s, "END;");
-
-    printf("Result: %s\n", s->buf);
 
     int c = prog_new_constant(p, v_str_new_cstr(s->buf));
     str_free(s);
