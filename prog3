@@ -1,9 +1,9 @@
 dbconnect("user=sqlinked password=s3cr3t host=localhost");
-a = 10;
+a = 10.2;
 s = "abc";
 ${
-     b = 20;
-     a = a + b;
+     b = 20.1;
+     a = a / b;
      t = "def";
      s = s + t;
 };
