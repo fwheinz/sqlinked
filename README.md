@@ -1,6 +1,6 @@
 # SQLinked - A Hybrid Approach for Local and Database-Remote Program Execution
 
-Florian Heinz <florian.heinz@oth-regensburg.de>
+Florian Heinz <florian.heinz@oth-regensburg.de>  
 Johannes Schildgen <johannes.schildgen@oth-regensburg.de>
 
 License: CC0
