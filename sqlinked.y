@@ -78,6 +78,7 @@ STMT: repeat '(' NUM ')' '{' STMTS '}'  { $$ = node(repeat); $$->child[0] = $3; 
     | hello { $$ = node(hello); }
     | STMT '+' STMT { $$ = node('+'); $$->child[0] = $1; $$->child[1] = $3; }
     | STMT '*' STMT { $$ = node('*'); $$->child[0] = $1; $$->child[1] = $3; }
+    | STMT '/' STMT { $$ = node('/'); $$->child[0] = $1; $$->child[1] = $3; }
     | STMT '-' STMT { $$ = node('-'); $$->child[0] = $1; $$->child[1] = $3; }
     |      '-' STMT { $$ = node('-'); $$->child[0] = 0 ; $$->child[1] = $2; } %prec UNARYMINUS
     | STMT '<' STMT { $$ = node('<'); $$->child[0] = $1; $$->child[1] = $3; }
@@ -335,6 +336,14 @@ int compile_ast(astnode_t *root) {
             typecheck(root, 0, 1, false);
             root->dt = root->child[0]->dt;
       prog_add_op(p, MUL);
+      break;
+
+    case '/':
+      compile_ast(root->child[1]);
+      compile_ast(root->child[0]);
+            typecheck(root, 0, 1, false);
+            root->dt = root->child[0]->dt;
+      prog_add_op(p, DIV);
       break;
 
     case '-':
@@ -732,6 +741,38 @@ str_t *dblock_create_plpgsql(astnode_t *root) {
                 root->sdt = root->child[1]->sdt;
             }
             str_add_cstr(s, " - ");
+            str_add_str(s, s2); str_free(s2);
+            return s;
+            break;
+
+        case '*':
+            s = dblock_create_plpgsql(root->child[0]);
+            s2 = dblock_create_plpgsql(root->child[1]);
+            if (root->child[0]) {
+                typecheck(root, 0, 1, false);
+                root->dt = root->child[0]->dt;
+                root->sdt = root->child[0]->sdt;
+            } else {
+                root->dt = root->child[1]->dt;
+                root->sdt = root->child[1]->sdt;
+            }
+            str_add_cstr(s, " * ");
+            str_add_str(s, s2); str_free(s2);
+            return s;
+            break;
+
+        case '/':
+            s = dblock_create_plpgsql(root->child[0]);
+            s2 = dblock_create_plpgsql(root->child[1]);
+            if (root->child[0]) {
+                typecheck(root, 0, 1, false);
+                root->dt = root->child[0]->dt;
+                root->sdt = root->child[0]->sdt;
+            } else {
+                root->dt = root->child[1]->dt;
+                root->sdt = root->child[1]->sdt;
+            }
+            str_add_cstr(s, " / ");
             str_add_str(s, s2); str_free(s2);
             return s;
             break;
