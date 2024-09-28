@@ -59,4 +59,9 @@ After that, execution can be performed without (re-)creating the stored procedur
 
      ./sqlinked prog1
  
- 
+# Reproducibility
+
+To reproduce the evaluation in the paper, the database system and the SQLinked interpreter should be run on different hosts. The `delayip.sh` script can be used to introduce an artificial delay when sending packets to the specified IP. For the evaulation in the paper, this script was executed on both hosts with 50ms delay to achieve a total round-trip-time of 100ms.
+For prog2 (Application 2 in the paper), different amounts for accounts in the account database table can be used (10, 20, 50 and 100) to perform the corresponding number of iterations.
+
+
