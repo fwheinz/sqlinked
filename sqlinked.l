@@ -6,6 +6,7 @@
 
 NEQ    "!="
 EQ     "=="
+INC    "++"
 HELLO  "hello"
 REPEAT "repeat"
 DEFUN  "defun"
@@ -24,6 +25,7 @@ STR    \"[^\"]*\"
 {DEFUN}  { return defun;  }
 {NEQ}    { return neq;    }
 {EQ}     { return eq;     }
+{INC}    { return inc;    }
 {IF}     { return _if;    }
 {ELSE}   { return _else;  }
 {WHILE}  { return _while; }

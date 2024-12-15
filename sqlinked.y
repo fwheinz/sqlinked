@@ -63,7 +63,8 @@ static int ignoredblocks = 0;
 %left neq eq
 %left '<'
 %left '+' '-'
-%left '*'
+%left '*' '/'
+%left inc
 %left UNARYMINUS
 
 %start START
@@ -87,6 +88,7 @@ STMT: repeat '(' NUM ')' '{' STMTS '}'  { $$ = node(repeat); $$->child[0] = $3; 
     | ID '(' APARAMS ')' { $$ = node(funcall); $$->child[0] = $1; $$->child[1] = $3; }
     | defun ID '(' FPARAMS ')' '{' STMTS '}'  { $$ = node(func); $$->child[0] = $2; $$->child[1] = $4; $$->child[2] = $7; }
     | ID '=' STMT { $$ = node('='); $$->child[0] = $1; $$->child[1] = $3; }
+    | ID inc { $$ = node('='); $$->child[0] = $1; $$->child[1] = node('+'); $$->child[1]->child[0] = $1; $$->child[1]->child[1] = node(num); $$->child[1]->child[1]->v.num = 1; }
     | ID '[' STMT ']' '=' STMT { $$ = node('['); $$->child[0] = $1; $$->child[1] = $3; $$->child[2] = $6; }
     | ID '[' STMT ']' { $$ = node(']'); $$->child[0] = $1; $$->child[1] = $3; }
     | NUM | ID | STR | ARR | REAL
