@@ -1,21 +1,18 @@
-dbconnect("user=sqlinked password=s3cr3t host=mdc1");
-
-nr = 0;
-
+dbconnect("user=sqlinked password=s3cr3t host=localhost");
+w = 0; a = 0; p = 0;
 ${
-
 n = 0;
 inc = dbquery("SELECT * FROM income");
 while (u = dbnext(inc)) {
     n = u["income"];
     if (n < 20000) {
-        dbquery("INSERT INTO poor (id, firstname, lastname, email, income) VALUES($1, $2, $3, $4, $5)", u["id"], u["firstname"], u["lastname"], u["email"], u["income"]);
+        dbquery("INSERT INTO poor    (id, fname, lname, income) VALUES($1, $2, $3, $4)", u["id"], u["fname"], u["lname"], u["income"]); p++;
     } else { if (80000 < n) {
-        dbquery("INSERT INTO wealthy (id, firstname, lastname, email, income) VALUES($1, $2, $3, $4, $5)", u["id"], u["firstname"], u["lastname"], u["email"], u["income"]);
+        dbquery("INSERT INTO wealthy (id, fname, lname, income) VALUES($1, $2, $3, $4)", u["id"], u["fname"], u["lname"], u["income"]); w++;
     } else {
-        dbquery("INSERT INTO average (id, firstname, lastname, email, income) VALUES($1, $2, $3, $4, $5)", u["id"], u["firstname"], u["lastname"], u["email"], u["income"]);
+        dbquery("INSERT INTO average (id, fname, lname, income) VALUES($1, $2, $3, $4)", u["id"], u["fname"], u["lname"], u["income"]); a++;
     }; };
 };
 
 };
-
+print("Wealthy:"); println(w); print("Average:"); println(a); print("Poor:"); println(p);
