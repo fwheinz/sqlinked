@@ -1,0 +1,21 @@
+dbconnect("user=sqlinked password=s3cr3t host=mdc1");
+
+nr = 0;
+
+${
+
+n = 0;
+inc = dbquery("SELECT * FROM income");
+while (u = dbnext(inc)) {
+    n = u["income"];
+    if (n < 20000) {
+        dbquery("INSERT INTO poor (id, firstname, lastname, email, income) VALUES($1, $2, $3, $4, $5)", u["id"], u["firstname"], u["lastname"], u["email"], u["income"]);
+    } else { if (80000 < n) {
+        dbquery("INSERT INTO wealthy (id, firstname, lastname, email, income) VALUES($1, $2, $3, $4, $5)", u["id"], u["firstname"], u["lastname"], u["email"], u["income"]);
+    } else {
+        dbquery("INSERT INTO average (id, firstname, lastname, email, income) VALUES($1, $2, $3, $4, $5)", u["id"], u["firstname"], u["lastname"], u["email"], u["income"]);
+    }; };
+};
+
+};
+

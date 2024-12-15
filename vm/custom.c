@@ -134,10 +134,22 @@ NATIVE(dbnext) {
 			char *_f = PQfname(dbr->result, i);
 			char *_v = PQgetvalue(dbr->result, dbr->currow, i);
 			val_t *f = v_str_new_cstr(_f);
-			val_t *v = v_str_new_cstr(_v);
+            val_t *v;
+
+            switch (PQftype(dbr->result, i)) {
+                case INT2OID:
+                case INT4OID:
+                case INT8OID:
+                    v = v_num_new_int(atoi(_v));
+                    break;
+                default:
+                    v = v_str_new_cstr(_v);
+                    break;
+            }
 			map_set(res->u.map, f, v);
-		}
-		dbr->currow++;
+
+        }
+        dbr->currow++;
 
 		return res;
 	} else {
