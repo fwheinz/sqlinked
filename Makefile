@@ -16,7 +16,7 @@ all: $(TARGETS)
 	$(CC) -c $(CFLAGS) $< -o $@
 
 %.tab.c %.tab.h: %.y
-	bison --defines -t $^
+	bison --report=all --defines -t $^
 
 %.lex.c: %.l
 	flex -o $@ $^
@@ -26,7 +26,7 @@ vm/libvm3.a:
 
 clean:
 	make -C vm clean
-	rm -f *.lex.* *.tab.* *.o $(TARGETS) *.vm3 *.gv *.eps
+	rm -f *.lex.* *.tab.* *.o $(TARGETS) *.vm3 *.gv *.eps sqlinked.output
 
 .PHONY: vm/libvm3.a
 
